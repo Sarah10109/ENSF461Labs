@@ -79,12 +79,11 @@ void* myalloc(size_t size) {
 
     node_t* current = free_list;
     while (current != NULL) {
-        if (current->is_free && current->size >= size + sizeof(node_t)) {
-            size_t remaining_size = current->size - size - sizeof(node_t);
-
-            if (remaining_size >= sizeof(node_t)) {
+        if (current->is_free && current->size >= size) {
+            if (current->size > size + sizeof(node_t)) {
+                // Split the block
                 node_t* new_node = (node_t*)((char*)current + sizeof(node_t) + size);
-                new_node->size = remaining_size;
+                new_node->size = current->size - size - sizeof(node_t);
                 new_node->is_free = 1;
                 new_node->fwd = current->fwd;
                 new_node->bwd = current;
@@ -95,9 +94,9 @@ void* myalloc(size_t size) {
 
                 current->fwd = new_node;
                 current->size = size;
-                
             }
             current->is_free = 0;
+            printf("Allocating memory:\n...allocation starts at %p\n", (void*)((char*)current + sizeof(node_t)));
             return (void*)((char*)current + sizeof(node_t));
         }
         current = current->fwd;
@@ -106,6 +105,7 @@ void* myalloc(size_t size) {
     statusno = ERR_OUT_OF_MEMORY;
     return NULL;
 }
+
 
 
 void myfree(void* ptr) {
@@ -122,6 +122,7 @@ void myfree(void* ptr) {
     node_t* current = (node_t*)((char*)ptr - sizeof(node_t));
     current->is_free = 1;
 
+    // Coalesce with next block if it's free
     if (current->fwd != NULL && current->fwd->is_free) {
         current->size += sizeof(node_t) + current->fwd->size;
         current->fwd = current->fwd->fwd;
@@ -130,6 +131,7 @@ void myfree(void* ptr) {
         }
     }
 
+    // Coalesce with previous block if it's free
     if (current->bwd != NULL && current->bwd->is_free) {
         current->bwd->size += sizeof(node_t) + current->size;
         current->bwd->fwd = current->fwd;
@@ -137,5 +139,7 @@ void myfree(void* ptr) {
             current->fwd->bwd = current->bwd;
         }
     }
-}
 
+    printf("Freeing allocated memory:\n...supplied pointer %p\n", ptr);
+    statusno = 0;
+}
