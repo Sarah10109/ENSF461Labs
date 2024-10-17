@@ -106,8 +106,6 @@ void* myalloc(size_t size) {
     return NULL;
 }
 
-
-
 void myfree(void* ptr) {
     if (!ptr) {
         statusno = ERR_BAD_ARGUMENTS;
